@@ -2,7 +2,10 @@ taxa_page:
   overview:
     panels:
       - - - panel:gallery
-          - panel:hello-world
+          - panel:gbif-taxon
+          - panel:gbif-images
+          - panel:gbif-map
+          - panel:gbif-type-specimens
           - panel:type
           - panel:type-specimen
           - panel:nomenclature
