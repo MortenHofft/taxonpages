@@ -6,7 +6,11 @@
         alt="GBIF"
         class="h-8 w-auto shrink-0"
       />
-      <h2 class="text-md">This taxon in GBIF</h2>
+      <h2 class="text-md grow">This taxon in GBIF</h2>
+      <PanelDropdown
+        panel-key="panel:gbif-taxon"
+        :menu-options="gbifMenuOptions"
+      />
     </VCardHeader>
     <VCardContent class="text-sm">
       <VSpinner
@@ -78,18 +82,18 @@
                 occurrenceCount === 1 ? '' : 's'
               }}
             </a>
-            on GBIF
+            in GBIF
           </span>
         </p>
 
-        <p>
+        <p class="flex justify-end">
           <a
             :href="gbifUrl"
             target="_blank"
             rel="noopener"
-            class="text-primary-color underline"
+            class="inline-block px-3 py-1.5 rounded bg-[#4c9c2e] text-white text-xs font-medium hover:bg-[#3f8326]"
           >
-            View on GBIF →
+            View on GBIF.org
           </a>
         </p>
       </div>
@@ -102,11 +106,15 @@ import { ref, computed, watch } from 'vue'
 import {
   useGbifMatch,
   deriveScientificName,
+  recordRequest,
+  gbifMenuOptions,
   CHECKLIST_KEY,
   GBIF_TAXON_BASE,
   GBIF_OCCURRENCE_BASE
 } from '../_gbifShared/useGbifMatch'
 import gbifMark from '../_gbifShared/gbif-mark.svg'
+import PanelDropdown from '@/modules/otus/components/Panel/PanelDropdown.vue'
+import { useOtuPageRequestStore } from '@/modules/otus/store/request'
 
 const GBIF_OCCURRENCE_SEARCH = 'https://api.gbif.org/v1/occurrence/search'
 
@@ -122,11 +130,19 @@ const {
   loading,
   error,
   match,
+  rawMatch,
+  matchUrl,
   isSynonym,
   targetUsage,
   gbifKey,
   classification
 } = useGbifMatch(scientificName)
+
+const requestStore = useOtuPageRequestStore()
+
+watch([matchUrl, rawMatch], ([url, data]) => {
+  if (url) recordRequest(requestStore, 'panel:gbif-taxon', { url, data })
+})
 
 const occurrenceCount = ref(null)
 

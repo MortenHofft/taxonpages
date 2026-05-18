@@ -6,7 +6,13 @@
         alt="GBIF"
         class="h-8 w-auto shrink-0"
       />
-      <h2 class="text-md">GBIF type specimens ({{ totalCount }})</h2>
+      <h2 class="text-md grow">
+        GBIF type specimens ({{ totalCount }})
+      </h2>
+      <PanelDropdown
+        panel-key="panel:gbif-type-specimens"
+        :menu-options="gbifMenuOptions"
+      />
     </VCardHeader>
     <VCardContent class="text-sm">
       <VSpinner
@@ -81,10 +87,14 @@ import { ref, computed, watch } from 'vue'
 import {
   useGbifMatch,
   deriveScientificName,
+  recordRequest,
+  gbifMenuOptions,
   CHECKLIST_KEY,
   GBIF_OCCURRENCE_DETAIL
 } from '../_gbifShared/useGbifMatch'
 import gbifMark from '../_gbifShared/gbif-mark.svg'
+import PanelDropdown from '@/modules/otus/components/Panel/PanelDropdown.vue'
+import { useOtuPageRequestStore } from '@/modules/otus/store/request'
 
 const GBIF_OCCURRENCE_SEARCH = 'https://api.gbif.org/v1/occurrence/search'
 const PAGE_SIZE = 10
@@ -161,26 +171,37 @@ const totalPages = computed(() =>
   Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE))
 )
 
+const requestStore = useOtuPageRequestStore()
+
 async function fetchPage(taxonKey, pageIndex) {
   loading.value = true
 
-  try {
-    const url = new URL(GBIF_OCCURRENCE_SEARCH)
-    url.searchParams.set('checklistKey', CHECKLIST_KEY)
-    url.searchParams.set('taxonKey', taxonKey)
-    url.searchParams.set('limit', String(PAGE_SIZE))
-    url.searchParams.set('offset', String(pageIndex * PAGE_SIZE))
-    TYPE_STATUSES.forEach((s) => url.searchParams.append('typeStatus', s))
+  const url = new URL(GBIF_OCCURRENCE_SEARCH)
+  url.searchParams.set('checklistKey', CHECKLIST_KEY)
+  url.searchParams.set('taxonKey', taxonKey)
+  url.searchParams.set('limit', String(PAGE_SIZE))
+  url.searchParams.set('offset', String(pageIndex * PAGE_SIZE))
+  TYPE_STATUSES.forEach((s) => url.searchParams.append('typeStatus', s))
+  const requestUrl = url.toString()
 
-    const res = await fetch(url.toString())
+  try {
+    const res = await fetch(requestUrl)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const data = await res.json()
     results.value = data?.results || []
     totalCount.value = typeof data?.count === 'number' ? data.count : 0
+    recordRequest(requestStore, 'panel:gbif-type-specimens', {
+      url: requestUrl,
+      data
+    })
   } catch (e) {
     results.value = []
     totalCount.value = 0
+    recordRequest(requestStore, 'panel:gbif-type-specimens', {
+      url: requestUrl,
+      data: null
+    })
   } finally {
     loading.value = false
   }

@@ -23,19 +23,25 @@ function isConfidentMatch(data) {
 }
 
 async function fetchMatch(name) {
-  try {
-    const url = new URL(MATCH_ENDPOINT)
-    url.searchParams.set('scientificName', name)
-    url.searchParams.set('verbose', 'true')
-    url.searchParams.set('checklistKey', CHECKLIST_KEY)
+  const url = new URL(MATCH_ENDPOINT)
+  url.searchParams.set('scientificName', name)
+  url.searchParams.set('verbose', 'true')
+  url.searchParams.set('checklistKey', CHECKLIST_KEY)
+  const requestUrl = url.toString()
 
-    const res = await fetch(url.toString())
+  try {
+    const res = await fetch(requestUrl)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const data = await res.json()
-    return { match: isConfidentMatch(data) ? data : null, error: false }
+    return {
+      match: isConfidentMatch(data) ? data : null,
+      error: false,
+      raw: data,
+      url: requestUrl
+    }
   } catch (e) {
-    return { match: null, error: true }
+    return { match: null, error: true, raw: null, url: requestUrl }
   }
 }
 
@@ -50,12 +56,16 @@ export function useGbifMatch(scientificName) {
   const loading = ref(false)
   const error = ref(false)
   const match = ref(null)
+  const rawMatch = ref(null)
+  const matchUrl = ref(null)
 
   watch(
     () => scientificName.value,
     async (name) => {
       if (!name) {
         match.value = null
+        rawMatch.value = null
+        matchUrl.value = null
         error.value = false
         loading.value = false
         return
@@ -68,6 +78,8 @@ export function useGbifMatch(scientificName) {
       if (scientificName.value !== name) return
 
       match.value = result.match
+      rawMatch.value = result.raw
+      matchUrl.value = result.url
       error.value = result.error
       loading.value = false
     },
@@ -91,12 +103,31 @@ export function useGbifMatch(scientificName) {
     loading,
     error,
     match,
+    rawMatch,
+    matchUrl,
     isSynonym,
     targetUsage,
     gbifKey,
     classification
   }
 }
+
+export function recordRequest(store, panelKey, { url, data }) {
+  if (!url) return
+  store.setRequest(panelKey, {
+    data,
+    request: { responseURL: url }
+  })
+}
+
+export const GBIF_TECHDOCS_URL = 'https://techdocs.gbif.org/en/'
+
+export const gbifMenuOptions = [
+  {
+    label: 'GBIF tech docs',
+    action: () => window.open(GBIF_TECHDOCS_URL, '_blank', 'noopener')
+  }
+]
 
 export function deriveScientificName(taxon, otu) {
   return taxon?.name || taxon?.full_name || otu?.object_label || ''

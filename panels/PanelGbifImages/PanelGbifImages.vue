@@ -6,7 +6,11 @@
         alt="GBIF"
         class="h-8 w-auto shrink-0"
       />
-      <h2 class="text-md">GBIF images</h2>
+      <h2 class="text-md grow">GBIF images</h2>
+      <PanelDropdown
+        panel-key="panel:gbif-images"
+        :menu-options="gbifMenuOptions"
+      />
     </VCardHeader>
     <div
       class="relative w-full h-80 overflow-hidden bg-black/5"
@@ -64,7 +68,7 @@
         rel="noopener"
         class="absolute bottom-2 right-2 px-2 py-1 text-xs rounded bg-base-background/80 border border-base-border shadow hover:bg-base-foreground"
       >
-        See on GBIF →
+        See details on GBIF.org
       </a>
     </div>
 
@@ -87,6 +91,14 @@
       </span>
       <span class="shrink-0">
         {{ imageIndex + 1 }} / {{ images.length }}
+        <a
+          :href="galleryUrl"
+          target="_blank"
+          rel="noopener"
+          class="ml-1 underline"
+        >
+          all
+        </a>
       </span>
     </p>
   </VCard>
@@ -97,10 +109,15 @@ import { ref, computed, watch } from 'vue'
 import {
   useGbifMatch,
   deriveScientificName,
+  recordRequest,
+  gbifMenuOptions,
   CHECKLIST_KEY,
+  GBIF_OCCURRENCE_BASE,
   GBIF_OCCURRENCE_DETAIL
 } from '../_gbifShared/useGbifMatch'
 import gbifMark from '../_gbifShared/gbif-mark.svg'
+import PanelDropdown from '@/modules/otus/components/Panel/PanelDropdown.vue'
+import { useOtuPageRequestStore } from '@/modules/otus/store/request'
 
 const GBIF_MULTIMEDIA_BASE =
   'https://api.gbif.org/v1/occurrence/experimental/multimedia/species'
@@ -179,6 +196,10 @@ const currentImageLicense = computed(() =>
   formatLicense(currentImage.value?.license)
 )
 
+const galleryUrl = computed(
+  () => `${GBIF_OCCURRENCE_BASE}?taxonKey=${gbifKey.value}&view=gallery`
+)
+
 function formatLicense(url) {
   if (!url) return null
 
@@ -194,23 +215,28 @@ function formatLicense(url) {
   return { label: url.replace(/^https?:\/\//, ''), url }
 }
 
+const requestStore = useOtuPageRequestStore()
+
 async function fetchImages(taxonKey) {
   images.value = []
   imageIndex.value = 0
 
-  try {
-    const url = new URL(`${GBIF_MULTIMEDIA_BASE}/${CHECKLIST_KEY}/${taxonKey}`)
-    url.searchParams.set('mediaType', 'stillImage')
-    url.searchParams.set('limit', String(IMAGE_LIMIT))
-    url.searchParams.set('offset', '0')
+  const url = new URL(`${GBIF_MULTIMEDIA_BASE}/${CHECKLIST_KEY}/${taxonKey}`)
+  url.searchParams.set('mediaType', 'stillImage')
+  url.searchParams.set('limit', String(IMAGE_LIMIT))
+  url.searchParams.set('offset', '0')
+  const requestUrl = url.toString()
 
-    const res = await fetch(url.toString())
+  try {
+    const res = await fetch(requestUrl)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const data = await res.json()
     images.value = (data?.results || []).filter((item) => item.identifier)
+    recordRequest(requestStore, 'panel:gbif-images', { url: requestUrl, data })
   } catch (e) {
     images.value = []
+    recordRequest(requestStore, 'panel:gbif-images', { url: requestUrl, data: null })
   }
 }
 

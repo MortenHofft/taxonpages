@@ -6,9 +6,13 @@
         alt="GBIF"
         class="h-8 w-auto shrink-0"
       />
-      <h2 class="text-md">GBIF occurrences map</h2>
+      <h2 class="text-md grow">GBIF occurrences map</h2>
+      <PanelDropdown
+        panel-key="panel:gbif-map"
+        :menu-options="gbifMenuOptions"
+      />
     </VCardHeader>
-    <div class="relative w-full h-64 overflow-hidden rounded-b">
+    <div class="relative w-full h-64 overflow-hidden rounded-b isolate">
       <div
         ref="mapEl"
         class="absolute inset-0"
@@ -18,7 +22,7 @@
         @click="openExplore"
         class="absolute bottom-2 left-2 z-[1000] px-2 py-1 text-xs rounded bg-base-background border border-base-border shadow hover:bg-base-foreground"
       >
-        Explore →
+        Explore on GBIF.org
       </button>
     </div>
   </VCard>
@@ -29,10 +33,14 @@ import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import {
   useGbifMatch,
   deriveScientificName,
+  recordRequest,
+  gbifMenuOptions,
   CHECKLIST_KEY,
   GBIF_OCCURRENCE_BASE
 } from '../_gbifShared/useGbifMatch'
 import gbifMark from '../_gbifShared/gbif-mark.svg'
+import PanelDropdown from '@/modules/otus/components/Panel/PanelDropdown.vue'
+import { useOtuPageRequestStore } from '@/modules/otus/store/request'
 
 const GBIF_MAP_CAPABILITIES =
   'https://api.gbif.org/v2/map/occurrence/density/capabilities.json'
@@ -61,22 +69,27 @@ const showMap = computed(
     typeof georeferencedCount.value === 'number' && georeferencedCount.value > 0
 )
 
+const requestStore = useOtuPageRequestStore()
+
 async function fetchMapCapabilities(taxonKey) {
   georeferencedCount.value = null
 
-  try {
-    const url = new URL(GBIF_MAP_CAPABILITIES)
-    url.searchParams.set('taxonKey', taxonKey)
-    url.searchParams.set('checklistKey', CHECKLIST_KEY)
+  const url = new URL(GBIF_MAP_CAPABILITIES)
+  url.searchParams.set('taxonKey', taxonKey)
+  url.searchParams.set('checklistKey', CHECKLIST_KEY)
+  const requestUrl = url.toString()
 
-    const res = await fetch(url.toString())
+  try {
+    const res = await fetch(requestUrl)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
     const data = await res.json()
     georeferencedCount.value =
       typeof data?.total === 'number' ? data.total : 0
+    recordRequest(requestStore, 'panel:gbif-map', { url: requestUrl, data })
   } catch (e) {
     georeferencedCount.value = 0
+    recordRequest(requestStore, 'panel:gbif-map', { url: requestUrl, data: null })
   }
 }
 
