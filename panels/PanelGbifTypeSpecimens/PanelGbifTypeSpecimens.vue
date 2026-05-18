@@ -7,7 +7,7 @@
         class="h-8 w-auto shrink-0"
       />
       <h2 class="text-md grow">
-        GBIF type specimens ({{ totalCount }})
+        Type specimens via GBIF ({{ totalCount }})
       </h2>
       <PanelDropdown
         panel-key="panel:gbif-type-specimens"

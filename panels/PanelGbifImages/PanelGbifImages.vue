@@ -6,7 +6,7 @@
         alt="GBIF"
         class="h-8 w-auto shrink-0"
       />
-      <h2 class="text-md grow">GBIF images</h2>
+      <h2 class="text-md grow">Images</h2>
       <PanelDropdown
         panel-key="panel:gbif-images"
         :menu-options="gbifMenuOptions"
