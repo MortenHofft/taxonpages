@@ -13,3 +13,5 @@
 !public/**
 !README.md
 config/**/*.development.yml
+public/robots.txt
+public/favicon.ico
