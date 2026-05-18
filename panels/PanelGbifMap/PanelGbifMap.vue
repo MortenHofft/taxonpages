@@ -12,7 +12,7 @@
         :menu-options="gbifMenuOptions"
       />
     </VCardHeader>
-    <div class="relative w-full h-64 overflow-hidden rounded-b isolate">
+    <div class="relative w-full h-96 overflow-hidden rounded-b isolate">
       <div
         ref="mapEl"
         class="absolute inset-0"
