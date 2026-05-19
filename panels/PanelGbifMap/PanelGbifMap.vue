@@ -24,6 +24,19 @@
       >
         Explore on GBIF.org
       </button>
+      <SelectInput
+        v-model="basemapKey"
+        class="absolute top-2 right-2 z-[1000] bg-base-background shadow"
+        aria-label="Basemap"
+      >
+        <option
+          v-for="(cfg, key) in BASEMAPS"
+          :key="key"
+          :value="key"
+        >
+          {{ cfg.label }}
+        </option>
+      </SelectInput>
     </div>
   </VCard>
 </template>
@@ -46,8 +59,18 @@ const GBIF_MAP_CAPABILITIES =
   'https://api.gbif.org/v2/map/occurrence/density/capabilities.json'
 const GBIF_TILE_TEMPLATE =
   'https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png'
-const ARCGIS_TILE_TEMPLATE =
-  'https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+const BASEMAPS = {
+  topo: {
+    label: 'Topographic',
+    url: 'https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri'
+  },
+  dark: {
+    label: 'Dark Gray',
+    url: 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri'
+  }
+}
 
 const props = defineProps({
   otuId: { type: [Number, String], required: true },
@@ -61,8 +84,10 @@ const { gbifKey } = useGbifMatch(scientificName)
 
 const georeferencedCount = ref(null)
 const mapEl = ref(null)
+const basemapKey = ref('topo')
 let mapInstance = null
 let gbifTileLayer = null
+let basemapLayer = null
 
 const showMap = computed(
   () =>
@@ -107,12 +132,23 @@ async function initMap(taxonKey) {
     attributionControl: true
   })
 
-  L.tileLayer(ARCGIS_TILE_TEMPLATE, {
-    attribution: 'Tiles &copy; Esri',
-    maxZoom: 18
-  }).addTo(mapInstance)
+  setBasemap(L, basemapKey.value)
 
   addGbifLayer(L, taxonKey)
+}
+
+function setBasemap(L, key) {
+  if (!mapInstance) return
+  if (basemapLayer) {
+    basemapLayer.remove()
+    basemapLayer = null
+  }
+  const cfg = BASEMAPS[key]
+  basemapLayer = L.tileLayer(cfg.url, {
+    attribution: cfg.attribution,
+    maxZoom: 18
+  }).addTo(mapInstance)
+  if (gbifTileLayer) gbifTileLayer.bringToFront()
 }
 
 function addGbifLayer(L, taxonKey) {
@@ -168,6 +204,7 @@ function destroyMap() {
     mapInstance.remove()
     mapInstance = null
     gbifTileLayer = null
+    basemapLayer = null
   }
 }
 
@@ -189,6 +226,12 @@ watch([showMap, mapEl, gbifKey], async ([show, el, key]) => {
   } else {
     initMap(key)
   }
+})
+
+watch(basemapKey, async (key) => {
+  if (!mapInstance) return
+  const L = (await import('leaflet')).default
+  setBasemap(L, key)
 })
 
 onBeforeUnmount(destroyMap)
