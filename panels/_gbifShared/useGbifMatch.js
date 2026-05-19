@@ -130,5 +130,5 @@ export const gbifMenuOptions = [
 ]
 
 export function deriveScientificName(taxon, otu) {
-  return taxon?.name || taxon?.full_name || otu?.object_label || ''
+  return taxon?.full_name || taxon?.name || otu?.object_label || ''
 }
