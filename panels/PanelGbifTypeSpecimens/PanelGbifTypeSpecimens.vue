@@ -42,7 +42,7 @@
               {{ row.typeStatus }}
             </span>
             <span class="grow">
-              {{ row.verbatimScientificName || row.scientificName || '—' }}
+              {{ row.verbatimScientificName || row.classifications?.[CHECKLIST_KEY]?.usage?.name || '—' }}
             </span>
             <span
               v-if="row.eventDate"
